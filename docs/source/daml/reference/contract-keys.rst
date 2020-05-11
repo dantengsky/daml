@@ -92,3 +92,14 @@ exerciseByKey
 Use ``exerciseByKey`` to exercise a choice on a contract identified by its ``key`` (compared to ``exercise``, which lets you exercise a contract identified by its ``ContractId``). To run ``exerciseByKey`` you need authorization from the controllers of the choice and at least one stakeholder.
 
 Because different templates can use the same key type, you need to specify the type of the contract you are trying to fetch using the ``@ContractType`` syntax.
+
+
+Example
+*******
+
+The below shows the different lookup functions and how they behave for parties with different relationships to a contract
+
+.. literalinclude:: ../code-snippets/Keys.daml
+   :language: daml
+   :start-after: module Keys where
+
