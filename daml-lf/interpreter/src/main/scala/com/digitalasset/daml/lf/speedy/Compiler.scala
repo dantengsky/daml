@@ -13,6 +13,9 @@ import com.daml.lf.speedy.SValue._
 import com.daml.lf.validation.{EUnknownDefinition, LEPackage, Validation, ValidationError}
 import org.slf4j.LoggerFactory
 
+//import PrettyLightweight._
+import Pretty.SExpr._
+
 import scala.annotation.tailrec
 
 /** Compiles LF expressions into Speedy expressions.
@@ -169,17 +172,18 @@ private[lf] final case class Compiler(
   @throws[PackageNotFound]
   @throws[CompilationError]
   def unsafeCompile(cmds: ImmArray[Command]): SExpr =
-    validate(closureConvert(Map.empty, translateCommands(cmds)))
+    validate(closureConvert1(Map.empty, translateCommands(cmds)))
 
   @throws[PackageNotFound]
   @throws[CompilationError]
-  def unsafeCompile(expr: Expr): SExpr =
-    validate(closureConvert(Map.empty, translate(expr)))
+  def unsafeCompile(expr: Expr, who: Option[Identifier] = None): SExpr = {
+    validate(closureConvert1(Map.empty, translate(expr), who))
+  }
 
   @throws[PackageNotFound]
   @throws[CompilationError]
   def unsafeClosureConvert(sexpr: SExpr): SExpr =
-    validate(closureConvert(Map.empty, sexpr))
+    validate(closureConvert1(Map.empty, sexpr))
 
   @throws[PackageNotFound]
   @throws[CompilationError]
@@ -190,7 +194,7 @@ private[lf] final case class Compiler(
     defn match {
       case DValue(_, _, body, _) =>
         val ref = LfDefRef(identifier)
-        List(ref -> withLabel(ref, unsafeCompile(body)))
+        List(ref -> withLabel(ref, unsafeCompile(body, Some(identifier))))
 
       case DDataType(_, _, DataRecord(_, Some(tmpl))) =>
         // Compile choices into top-level definitions that exercise
@@ -742,6 +746,8 @@ private[lf] final case class Compiler(
             SEAbs(1) {
               SELet(
                 SBSBeginCommit(optLoc)(party, SEVar(1)),
+                //NOTE: this is the only place which constructs SECatch expressions.. and they are only of this very limited form.
+                // maybe we dont need such a general construct
                 SECatch(SEApp(update, Array(SEVar(2))), SEValue.True, SEValue.False),
               ) in SBSEndCommit(true)(SEVar(1), SEVar(3))
             }
@@ -858,7 +864,7 @@ private[lf] final case class Compiler(
     //       _ = $endExercise[tmplId]
     //   in result
     validate(
-      closureConvert(
+      closureConvert1(
         Map.empty,
         withEnv { _ =>
           env = env.incrPos // <byKey flag>
@@ -1003,6 +1009,44 @@ private[lf] final case class Compiler(
     *       SELocF(0) ..            [reference the first let-bound variable via the closure]
     *       SELocA(0))              [reference the first function arg]
     */
+  def closureConvert1(
+      remaps: Map[Int, SELoc],
+      expr: SExpr,
+      who: Option[Identifier] = None): SExpr = {
+    val tagOpt: Option[String] = who match {
+      case Some(id) =>
+        if (id.qualifiedName.module.toString == "JsonParser") {
+          None //Some(id.qualifiedName.name.toString)
+        } else {
+          None //Some(id.qualifiedName.name.toString) // see everything!
+        }
+      case None =>
+        None //Some("<top-level>")
+    }
+
+    val cc = closureConvert(remaps, expr)
+    tagOpt match {
+      case Some(tag) =>
+        println(s"--------------------------------------------------[$tag] (cc)")
+        println(prettySExpr(0)(cc).render(80))
+        println(s"--------------------------------------------------[$tag]")
+      case _ =>
+    }
+    val anf = Anf.flattenEntry(cc)
+    tagOpt match {
+      case Some(tag) =>
+        println(s"--------------------------------------------------[$tag] (anf)")
+        println(prettySExpr(0)(anf).render(80))
+        println(s"--------------------------------------------------[$tag]")
+
+        /*if (tag == "nfib") {
+          throw CompilationError("nfib..stopping!")
+        }*/
+      case _ =>
+    }
+    anf
+  }
+
   def closureConvert(remaps: Map[Int, SELoc], expr: SExpr): SExpr = {
     // remaps is a function which maps the relative offset from variables (SEVar) to their runtime location
     // The Map must contain a binding for every variable referenced.
@@ -1045,11 +1089,14 @@ private[lf] final case class Compiler(
       case x: SEMakeClo =>
         throw CompilationError(s"closureConvert: unexpected SEMakeClo: $x")
 
+      case x: SEAppAtomic =>
+        throw CompilationError(s"closureConvert: unexpected SEAppAtomic: $x")
+
       case SEAppGeneral(fun, args) =>
         val newFun = closureConvert(remaps, fun)
         val newArgs = args.map(closureConvert(remaps, _))
         SEApp(newFun, newArgs)
-
+      /*
       case SEAppAtomicFun(fun, args) =>
         val newFun = closureConvert(remaps, fun)
         val newArgs = args.map(closureConvert(remaps, _))
@@ -1058,7 +1105,7 @@ private[lf] final case class Compiler(
       case SEAppSaturatedBuiltinFun(builtin, args) =>
         val newArgs = args.map(closureConvert(remaps, _))
         SEAppSaturatedBuiltinFun(builtin, newArgs)
-
+       */
       case SECase(scrut, alts) =>
         SECase(
           closureConvert(remaps, scrut),
@@ -1137,14 +1184,16 @@ private[lf] final case class Compiler(
         case _: SEBuiltinRecursiveDefinition => ()
         case SELocation(_, body) =>
           go(body)
+        case x: SEAppAtomic =>
+          throw CompilationError(s"freeVars: unexpected SEAppAtomic: $x")
         case SEAppGeneral(fun, args) =>
           go(fun)
           args.foreach(go)
-        case SEAppAtomicFun(fun, args) =>
+        /*        case SEAppAtomicFun(fun, args) =>
           go(fun)
           args.foreach(go)
         case SEAppSaturatedBuiltinFun(_, args) =>
-          args.foreach(go)
+          args.foreach(go) */
         case SEAbs(n, body) =>
           bound += n
           go(body)
@@ -1209,11 +1258,16 @@ private[lf] final case class Compiler(
     }
 
     def goBody(maxS: Int, maxA: Int, maxF: Int): SExpr => Unit = {
-
+      //println(s"goBody, maxS=$maxS")
       def goLoc(loc: SELoc) = loc match {
         case SELocS(i) =>
-          if (i < 1 || i > maxS)
+          if (i < 1 || i > maxS) {
+            println("about to crash...");
+            println("==============================");
+            println(prettySExpr(0)(expr0).render(80))
+            println("==============================");
             throw CompilationError(s"validate: SELocS: index $i out of range ($maxS..1)")
+          }
         case SELocA(i) =>
           if (i < 0 || i >= maxA)
             throw CompilationError(s"validate: SELocA: index $i out of range (0..$maxA-1)")
@@ -1228,14 +1282,17 @@ private[lf] final case class Compiler(
         case _: SEBuiltin => ()
         case _: SEBuiltinRecursiveDefinition => ()
         case SEValue(v) => goV(v)
+        case SEAppAtomic(fun, args) =>
+          go(fun)
+          args.foreach(go)
         case SEAppGeneral(fun, args) =>
           go(fun)
           args.foreach(go)
-        case SEAppAtomicFun(fun, args) =>
+        /*        case SEAppAtomicFun(fun, args) =>
           go(fun)
           args.foreach(go)
         case SEAppSaturatedBuiltinFun(_, args) =>
-          args.foreach(go)
+          args.foreach(go) */
         case x: SEVar =>
           throw CompilationError(s"validate: SEVar encountered: $x")
         case abs: SEAbs =>

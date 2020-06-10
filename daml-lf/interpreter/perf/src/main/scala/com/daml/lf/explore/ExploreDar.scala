@@ -31,6 +31,7 @@ object PlaySpeedy {
   }
 
   def parseArgs(args0: List[String]): Config = {
+    var moduleName: String = "Examples"
     var funcName: String = "triangle"
     var argValue: Long = 10
     var stacktracing: Compiler.StackTraceMode = Compiler.NoStackTrace
@@ -44,15 +45,19 @@ object PlaySpeedy {
       case "--stacktracing" :: args =>
         stacktracing = Compiler.FullStackTrace
         loop(args)
+      case "--base" :: x :: args =>
+        moduleName = x
+        loop(args)
       case x :: args =>
         funcName = x
         loop(args)
     }
     loop(args0)
-    Config(funcName, argValue, stacktracing)
+    Config(moduleName, funcName, argValue, stacktracing)
   }
 
   final case class Config(
+      moduleName: String,
       funcName: String,
       argValue: Long,
       stacktracing: Compiler.StackTraceMode,
@@ -61,8 +66,8 @@ object PlaySpeedy {
   def main(args0: List[String]) = {
 
     println("Start...")
-    val base = "Examples"
     val config = parseArgs(args0)
+    val base = config.moduleName
     val dar = s"daml-lf/interpreter/perf/${base}.dar"
     val darFile = new File(rlocation(dar))
 
@@ -74,10 +79,20 @@ object PlaySpeedy {
       }.toMap
 
     println(s"Compiling packages... ${config.stacktracing}")
+
+    /*
     val compiledPackages: CompiledPackages = PureCompiledPackages(
       packagesMap,
       config.stacktracing
     ).right.get
+     */
+
+    val compiledPackages: CompiledPackages =
+      PureCompiledPackages(packagesMap, config.stacktracing) match {
+        case Left(x) => throw new MachineProblem(s"Unexpected compilation $x")
+        case Right(x) => x
+      }
+
 
     val machine: Machine = {
       println(s"Setup machine for: ${config.funcName}(${config.argValue})")

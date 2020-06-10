@@ -555,7 +555,7 @@ object Speedy {
       Right(
         (expr: Expr) =>
           fromSExpr(
-            SEApp(compiler.unsafeCompile(expr), Array(SEValue.Token)),
+            SEApp(compiler.unsafeCompile(expr, None), Array(SEValue.Token)),
             compiledPackages,
             submissionTime,
             InitialSeeding.TransactionSeed(submissionSeed),
@@ -589,9 +589,9 @@ object Speedy {
       val compiler = compiledPackages.compiler
       val sexpr =
         if (scenario)
-          SEApp(compiler.unsafeCompile(expr), Array(SEValue.Token))
+          SEApp(compiler.unsafeCompile(expr, None), Array(SEValue.Token))
         else
-          compiler.unsafeCompile(expr)
+          compiler.unsafeCompile(expr, None)
 
       fromSExpr(
         sexpr,

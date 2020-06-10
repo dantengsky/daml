@@ -45,10 +45,10 @@ object SExpr {
     * https://en.wikipedia.org/wiki/De_Bruijn_index
     * This expression form is only allowed prior to closure conversion
     */
-  final case class SEVar(index: Int) extends SExprAtomic {
-    def evaluate(machine: Machine): SValue = {
+  final case class SEVar(index: Int) extends SExpr {
+    /*def evaluate(machine: Machine): SValue = {
       crash("unexpected SEVar, expected SELoc(S/A/F)")
-    }
+    }*/
     def execute(machine: Machine): Unit = {
       crash("unexpected SEVar, expected SELoc(S/A/F)")
     }
@@ -125,6 +125,20 @@ object SExpr {
     }
   }
 
+  final case class SEAppAtomic(fun: SExpr, args0: Array[SExprAtomic])
+      extends SExpr
+      with SomeArrayEquals {
+
+    def unAtom(a: SExprAtomic): SExpr = a
+    val args = args0.map(unAtom)
+
+    def execute(machine: Machine): Unit = {
+      machine.pushKont(KArg(args, machine.frame, machine.actuals, machine.env.size))
+      machine.ctrl = fun
+    }
+  }
+
+  /*
   /** Function application:
     Special case: 'fun' is an atomic expression. */
   final case class SEAppAtomicFun(fun: SExprAtomic, args: Array[SExpr])
@@ -138,7 +152,7 @@ object SExpr {
 
   /** Function application:
     Special case: 'fun' is a builtin; size of `args' matches the builtin arity.
-    */
+   */
   // A fully saturated builtin application
   final case class SEAppSaturatedBuiltinFun(builtin: SBuiltin, args: Array[SExpr])
       extends SExpr
@@ -153,6 +167,7 @@ object SExpr {
       evaluateArguments(machine, actuals, args, args.length);
     }
   }
+   */
 
   object SEApp {
 
@@ -160,6 +175,7 @@ object SExpr {
       fun match {
         // Detect special cases of function-application which can we executed more efficiently
 
+        /*
         case SEBuiltin(builtin) if builtin.arity == args.length =>
           SEAppSaturatedBuiltinFun(builtin, args)
 
@@ -173,7 +189,7 @@ object SExpr {
           SEApp(SEAppSaturatedBuiltinFun(builtin, arityArgs), extraArgs)
 
         case vfun: SExprAtomic => SEAppAtomicFun(vfun, args)
-
+         */
         case _ => SEAppGeneral(fun, args) // fall back to the general case
       }
     }
