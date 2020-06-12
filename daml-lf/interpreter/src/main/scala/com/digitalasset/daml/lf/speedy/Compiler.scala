@@ -1039,7 +1039,7 @@ private[lf] final case class Compiler(
         println(prettySExpr(0)(anf).render(80))
         println(s"--------------------------------------------------[$tag]")
 
-        /*if (tag == "nfib") {
+      /*if (tag == "nfib") {
           throw CompilationError("nfib..stopping!")
         }*/
       case _ =>

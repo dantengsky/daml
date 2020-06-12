@@ -93,7 +93,6 @@ object PlaySpeedy {
         case Right(x) => x
       }
 
-
     val machine: Machine = {
       println(s"Setup machine for: ${config.funcName}(${config.argValue})")
       val expr = {

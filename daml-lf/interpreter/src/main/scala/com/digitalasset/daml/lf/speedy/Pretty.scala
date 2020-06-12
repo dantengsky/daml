@@ -473,7 +473,8 @@ object Pretty {
     }
 
     def prettySELoc(index: Int)(loc: SELoc): Doc = loc match {
-      case SELocS(i) => text("S[") + str(i) + text("=abs:") + str(index - i) + text("]") // show absolute stack position, 0..
+      case SELocS(i) =>
+        text("S[") + str(i) + text("=abs:") + str(index - i) + text("]") // show absolute stack position, 0..
       case SELocA(i) => text("A") + str(i)
       case SELocF(i) => text("F") + str(i)
     }
