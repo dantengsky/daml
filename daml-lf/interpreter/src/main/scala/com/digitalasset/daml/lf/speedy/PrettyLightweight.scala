@@ -34,6 +34,7 @@ object PrettyLightweight { // lightweight pretty printer for CEK machine states
 
   def ppKont(k: Kont): String = k match {
     case KFinished => "KFinished"
+    case _: KOverApp => "KOverApp"
     case _: KArg => "KArg"
     case _: KFun => "KFun"
     case _: KBuiltin => "KBuiltin"
@@ -57,7 +58,7 @@ object PrettyLightweight { // lightweight pretty printer for CEK machine states
     s"${x.ref.qualifiedName.name}"
   }
 
-  def pp(e: SExpr): String = e match {
+  def pp(e: SExpr): String = if (e == null) { "<null-expr>" } else e match {
     case SEValue(v) => s"(VALUE)${pp(v)}"
     case SEVar(n) => s"D#$n" //dont expect these at runtime
     case loc: SELoc => pp(loc)

@@ -18,7 +18,7 @@ object Classify { // classify the machine state w.r.t what step occurs next
       var evarA: Int = 0,
       var evarF: Int = 0,
       var eappE: Int = 0,
-      //var eappA: Int = 0,
+      var eappA: Int = 0,
       //var eappB: Int = 0,
       var eclose: Int = 0,
       var ebuiltin: Int = 0,
@@ -32,6 +32,7 @@ object Classify { // classify the machine state w.r.t what step occurs next
       var ewrongcid: Int = 0,
       // kont classification (ctrlValue)
       var kfinished: Int = 0,
+      var koverapp: Int = 0,
       var karg: Int = 0,
       var kfun: Int = 0,
       var kbuiltin: Int = 0,
@@ -51,7 +52,7 @@ object Classify { // classify the machine state w.r.t what step occurs next
         ("- evarA", evarA),
         ("- evarF", evarF),
         ("- eappE", eappE),
-        //("- eappA", eappA),
+        ("- eappA", eappA),
         //("- eappB", eappB),
         ("- eclose", eclose),
         ("- ebuiltin", ebuiltin),
@@ -64,6 +65,7 @@ object Classify { // classify the machine state w.r.t what step occurs next
         ("- eimportvalue", eimportvalue),
         ("CtrlValue:", ctrlValue),
         ("- kfinished", kfinished),
+        ("- koverapp", koverapp),
         ("- karg", karg),
         ("- kfun", kfun),
         ("- kbuiltin", kbuiltin),
@@ -85,7 +87,9 @@ object Classify { // classify the machine state w.r.t what step occurs next
       classifyKont(kont, counts)
     } else {
       counts.ctrlExpr += 1
-      classifyExpr(machine.ctrl, counts)
+      if (machine.ctrl != null) {
+        classifyExpr(machine.ctrl, counts)
+      }
     }
   }
 
@@ -98,7 +102,7 @@ object Classify { // classify the machine state w.r.t what step occurs next
       case _: SELocA => counts.evarA += 1
       case _: SELocF => counts.evarF += 1
       case _: SEAppGeneral => counts.eappE += 1
-      case _: SEAppAtomic => counts.eappE += 1
+      case _: SEAppAtomic => counts.eappA += 1
       //case _: SEAppAtomicFun => counts.eappA += 1
       //case _: SEAppSaturatedBuiltinFun => counts.eappB += 1
       case _: SEMakeClo => counts.eclose += 1
@@ -118,6 +122,7 @@ object Classify { // classify the machine state w.r.t what step occurs next
   def classifyKont(kont: Kont, counts: Counts): Unit = {
     kont match {
       case KFinished => counts.kfinished += 1
+      case _: KOverApp => counts.koverapp += 1
       case _: KArg => counts.karg += 1
       case _: KFun => counts.kfun += 1
       case _: KBuiltin => counts.kbuiltin += 1

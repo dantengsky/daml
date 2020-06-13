@@ -139,7 +139,7 @@ class CollectAuthorityState {
         case SResultFinalValue(v) =>
           finalValue = v
         case r =>
-          crash("setup run: unexpected result from speedy")
+          crash(s"setup run: unexpected result from speedy: $r")
       }
     }
   }

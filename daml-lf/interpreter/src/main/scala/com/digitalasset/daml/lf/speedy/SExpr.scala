@@ -122,20 +122,36 @@ object SExpr {
     def execute(machine: Machine): Unit = {
       machine.pushKont(KArg(args, machine.frame, machine.actuals, machine.env.size))
       machine.ctrl = fun
+      //throw SErrorCrash(s"execute: unexpected SEAppGeneral") //TODO: when all are gone!
     }
   }
 
-  final case class SEAppAtomic(fun: SExpr, args0: Array[SExprAtomic])
+  final case class SEAppAtomic(fun: SExprAtomic, args: Array[SExprAtomic])
       extends SExpr
       with SomeArrayEquals {
-
+/*
+    def execute(machine: Machine): Unit = {
+      val vfun = fun.evaluate(machine)
+      val arity = args.length
+      val actuals = new util.ArrayList[SValue](arity)
+      for (i <- 0 to arity - 1) {
+        actuals.add(args(i).evaluate(machine))
+      }
+      enterApplication(machine, vfun, actuals)
+    }
+ */
     def unAtom(a: SExprAtomic): SExpr = a
-    val args = args0.map(unAtom)
 
     def execute(machine: Machine): Unit = {
-      machine.pushKont(KArg(args, machine.frame, machine.actuals, machine.env.size))
-      machine.ctrl = fun
+      //machine.pushKont(KArg(args.map(unAtom), machine.frame, machine.actuals, machine.env.size))
+      //machine.ctrl = fun
+
+      val vfun = fun.evaluate(machine)
+
+      new_executeApplication(machine, vfun, args)
+
     }
+
   }
 
   /*

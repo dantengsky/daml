@@ -96,7 +96,7 @@ object PlaySpeedy {
     }
   }
 
-  final case class MachineProblem(s: String) extends RuntimeException(s, null, false, false)
+  final case class MachineProblem(s: String) extends RuntimeException(s) //, null, false, false)
 
   def examples: Map[String, (Int, SExpr)] = {
 
@@ -109,6 +109,8 @@ object PlaySpeedy {
 
     def subtract2(x: SExpr, y: SExpr): SExpr = SEApp(SEBuiltin(SBSubInt64), Array(x, y))
     val subtract = SEAbs(2, subtract2(SEVar(2), SEVar(1)))
+
+    val id = SEAbs(1, SEVar(1))
 
     def twice2(f: SExpr, x: SExpr): SExpr = SEApp(f, Array(SEApp(f, Array(x))))
     val twice = SEAbs(2, twice2(SEVar(2), SEVar(1)))
@@ -129,6 +131,10 @@ object PlaySpeedy {
         "subF", //88-55
         33,
         SEApp(subtract, Array(num(88), num(55)))),
+      (
+        "id-id", // id id 77
+        77,
+        SEApp(id, Array(id, num(77)))),
       (
         "thrice", // thrice (\x -> x - 1) 0
         -3,

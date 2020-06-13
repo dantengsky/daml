@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory
 import scala.collection.JavaConverters._
 import scala.util.control.NoStackTrace
 
+//import PrettyLightweight._
+
 object Speedy {
 
   // Would like these to have zero cost when not enabled. Better still, to be switchable at runtime.
@@ -147,6 +149,7 @@ object Speedy {
     @inline def kontDepth(): Int = kontStack.size()
 
     @inline def pushKont(k: Kont): Unit = {
+      //println(s"pushKont: ${ppKont(k)}")
       kontStack.add(k)
       if (enableInstrumentation) {
         track.countPushesKont += 1
@@ -654,6 +657,68 @@ object Speedy {
     }
   }
 
+  //----------------------------------------------------------------------NOT WORKING
+/*  
+  /** The function/args have been evaluated to values, now execute the function. */
+  def enterApplication(machine: Machine, vfun: SValue, newActuals: util.ArrayList[SValue]): Unit = {
+    vfun match {
+      case SPAP(prim, actualsSoFar, arity) =>
+
+        val missing = arity - actualsSoFar.size
+        val newArgsLimit = Math.min(missing, newActuals.size)
+
+        val actuals = new util.ArrayList[SValue](actualsSoFar.size + newArgsLimit)
+        actuals.addAll(actualsSoFar)
+        actuals.addAll(newActuals)
+
+        val othersLength = newActuals.size - missing
+
+        // Not enough arguments. Construct & return the PAP.
+        if (othersLength < 0) {
+          machine.returnValue = SPAP(prim, actuals, arity)
+
+        } else {
+          // Too many arguments: Push a continuation to re-apply the over-applied args.
+          if (othersLength > 0) {
+            val others = new util.ArrayList[SValue](othersLength)
+            for (i <- 0 to othersLength - 1) {
+              others.add(actuals.get(missing + i))
+            }
+            machine.pushKont(KOverApp(others, machine.frame, machine.actuals, machine.env.size))
+          }
+          // Now the correct number of arguments is ensured. What kind of prim do we have?
+          prim match {
+            case closure: PClosure =>
+              machine.frame = closure.frame
+              machine.actuals = actuals
+              // Maybe push a continuation for the profiler
+              val label = closure.label
+              if (label != null) {
+                machine.profile.addOpenEvent(label)
+                machine.pushKont(KLeaveClosure(label))
+              }
+              // Start evaluating the body of the closure.
+              machine.ctrl = closure.expr
+
+            case PBuiltin(builtin) =>
+              // A builtin has no free-vars, so we dont have to set the frame.
+              machine.actuals = actuals
+              try {
+                builtin.execute(actuals, machine)
+              } catch {
+                // We turn arithmetic exceptions into a daml exception that can be caught.
+                case e: ArithmeticException =>
+                  throw DamlEArithmeticError(e.getMessage)
+              }
+          }
+        }
+
+      case _ =>
+        crash(s"Applying non-PAP: $vfun")
+    }
+  }
+*/
+
   /** Evaluate the first 'n' arguments in 'args'.
     'args' will contain at least 'n' expressions, but it may contain more(!)
 
@@ -715,7 +780,90 @@ object Speedy {
     }
   }
 
+//----------------------------------------------------------------------SECOND ATTEMPT
+
+  /** The function has been evaluated to a value, now start evaluating the arguments. */
+  def new_executeApplication(machine: Machine, vfun: SValue, newArgs: Array[SExprAtomic]): Unit = {
+    vfun match {
+      case SPAP(prim, actualsSoFar, arity) =>
+        val missing = arity - actualsSoFar.size
+        val newArgsLimit = Math.min(missing, newArgs.length)
+
+        val actuals = new util.ArrayList[SValue](actualsSoFar.size + newArgsLimit)
+        actuals.addAll(actualsSoFar)
+
+        val othersLength = newArgs.length - missing
+
+        for (i <- 0 to newArgsLimit-1) {
+          val newArg = newArgs(i)
+          val v = newArg.evaluate(machine)
+          actuals.add(v)
+        }
+
+        // Not enough arguments. Push a continuation to construct the PAP.
+        if (othersLength < 0) {
+          //machine.pushKont(KPap(prim, actuals, arity))
+          machine.returnValue = SPAP(prim, actuals, arity)
+
+        } else {
+          // Too many arguments: Push a continuation to re-apply the over-applied args.
+          if (othersLength > 0) {
+            val others = new Array[SExpr](othersLength)
+            System.arraycopy(newArgs, missing, others, 0, othersLength)
+            machine.pushKont(KArg(others, machine.frame, machine.actuals, machine.env.size))
+          }
+          // Now the correct number of arguments is ensured. What kind of prim do we have?
+          prim match {
+            case closure: PClosure =>
+              // Push a continuation to execute the function body when the arguments have been evaluated
+              //machine.pushKont(KFun(closure, actuals))
+
+              machine.frame = closure.frame
+              machine.actuals = actuals
+              // Maybe push a continuation for the profiler
+              val label = closure.label
+              if (label != null) {
+                machine.profile.addOpenEvent(label)
+                machine.pushKont(KLeaveClosure(label))
+              }
+              // Start evaluating the body of the closure.
+              machine.ctrl = closure.expr
+
+            case PBuiltin(builtin) =>
+              // Push a continuation to execute the builtin when the arguments have been evaluated
+              //machine.pushKont(KBuiltin(builtin, actuals))
+              machine.actuals = actuals
+              try {
+                builtin.execute(actuals, machine)
+              } catch {
+                // We turn arithmetic exceptions into a daml exception that can be caught.
+                case e: ArithmeticException =>
+                  throw DamlEArithmeticError(e.getMessage)
+              }
+
+          }
+        }
+
+      case _ =>
+        crash(s"Applying non-PAP: $vfun")
+    }
+  }
+
+//----------------------------------------------------------------------
+
+
   /** The function has been evaluated to a value. Now restore the environment and execute the application */
+  final case class KOverApp(overArgs: util.ArrayList[SValue], frame: Frame, actuals: Actuals, envSize: Int) extends Kont with SomeArrayEquals {
+    def execute(vfun: SValue, machine: Machine) = {
+/*      
+      //println(s"KOverApp: ${pp(vfun)}")
+      machine.restoreEnv(frame, actuals, envSize) //TODO: is this required.. dont think so
+      enterApplication(machine, vfun, overArgs)
+ */
+      ???
+    }
+  }
+
   final case class KArg(newArgs: Array[SExpr], frame: Frame, actuals: Actuals, envSize: Int)
       extends Kont
       with SomeArrayEquals {
@@ -839,10 +987,11 @@ object Speedy {
               case _ => false
             }
           }
-        case SContractId(_) | SDate(_) | SNumeric(_) | SInt64(_) | SParty(_) | SText(_) |
+/*        case SContractId(_) | SDate(_) | SNumeric(_) | SInt64(_) | SParty(_) | SText(_) |
             STimestamp(_) | SStruct(_, _) | STextMap(_) | SGenMap(_) | SRecord(_, _, _) |
             SAny(_, _) | STypeRep(_) | STNat(_) | _: SPAP | SToken =>
-          crash("Match on non-matchable value")
+          crash("Match on non-matchable value")*/
+        case x => crash(s"Match on non-matchable value: $x")
       }
 
       machine.ctrl = altOpt

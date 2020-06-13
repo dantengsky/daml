@@ -120,13 +120,16 @@ object Anf {
   def transformLets(depth: DepthA, env: Env, rhss: List[SExpr], body: SExpr, k0: K[SExpr]): Res =
     rhss match {
       case rhs :: rhss =>
-        transformExp(depth, env, rhs, {
-          case (depth, rhs) =>
-            Land(
-              SELet(
-                Array(rhs),
-                transformLets(DepthA(depth.n + 1), trackBindings(depth, env, 1), rhss, body, k0).bounce))
-        })
+        transformExp(
+          depth,
+          env,
+          rhs, {
+            case (depth, rhs) =>
+              val env1 = trackBindings(depth, env, 1)
+              val anf = transformLets(DepthA(depth.n + 1), env1, rhss, body, k0).bounce
+              Land(SELet(Array(rhs), anf))
+          }
+        )
       case Nil =>
         transformExp(depth, env, body, k0)
     }
@@ -136,7 +139,8 @@ object Anf {
     alts.map {
       case SCaseAlt(pat, body0) =>
         val n = patternNArgs(pat)
-        val body = flattenExp(DepthA(depth.n + n), trackBindings(depth, env, n), body0)
+        val env1 = trackBindings(depth, env, n)
+        val body = flattenExp(DepthA(depth.n + n), env1, body0)
         SCaseAlt(pat, body)
     }
   }
@@ -150,9 +154,7 @@ object Anf {
   def transformExp(depth: DepthA, env: Env, exp: SExpr, k: K[SExpr]): Res =
     Bounce(() =>
       exp match {
-
         case atom: SExprAtomic => k(depth, relocateA(depth, env)(atom))
-
         case x: SEVal => k(depth, x)
         case x: SEBuiltinRecursiveDefinition => k(depth, x)
 
