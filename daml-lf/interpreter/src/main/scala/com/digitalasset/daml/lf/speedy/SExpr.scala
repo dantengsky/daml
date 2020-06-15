@@ -126,10 +126,10 @@ object SExpr {
     }
   }
 
-  final case class SEAppAtomic(fun: SExprAtomic, args: Array[SExprAtomic])
+  final case class SEAppAtomicGeneral(fun: SExprAtomic, args: Array[SExprAtomic])
       extends SExpr
       with SomeArrayEquals {
-/*
+    /*
     def execute(machine: Machine): Unit = {
       val vfun = fun.evaluate(machine)
       val arity = args.length
@@ -139,19 +139,43 @@ object SExpr {
       }
       enterApplication(machine, vfun, actuals)
     }
- */
-    def unAtom(a: SExprAtomic): SExpr = a
+     */
 
     def execute(machine: Machine): Unit = {
       //machine.pushKont(KArg(args.map(unAtom), machine.frame, machine.actuals, machine.env.size))
       //machine.ctrl = fun
-
       val vfun = fun.evaluate(machine)
-
       new_executeApplication(machine, vfun, args)
-
     }
 
+  }
+
+  final case class SEAppAtomicSaturatedBuiltin(builtin: SBuiltin, args: Array[SExprAtomic])
+      extends SExpr
+      with SomeArrayEquals {
+
+    def execute(machine: Machine): Unit = {
+      val arity = builtin.arity
+      val actuals = new util.ArrayList[SValue](arity)
+      for (i <- 0 to arity - 1) {
+        val arg = args(i)
+        val v = arg.evaluate(machine)
+        actuals.add(v)
+      }
+      builtin.execute(actuals, machine)
+    }
+  }
+
+  object SEAppAtomic {
+    def apply(func: SExprAtomic, args: Array[SExprAtomic]): SExpr = {
+      func match {
+        // Detect saturated application of builtins...
+        case SEBuiltin(builtin) if builtin.arity == args.length =>
+          SEAppAtomicSaturatedBuiltin(builtin, args)
+        case _ =>
+          SEAppAtomicGeneral(func, args) // fall back to the general case
+      }
+    }
   }
 
   /*

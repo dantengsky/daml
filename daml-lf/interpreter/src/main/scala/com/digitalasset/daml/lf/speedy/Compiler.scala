@@ -1089,8 +1089,11 @@ private[lf] final case class Compiler(
       case x: SEMakeClo =>
         throw CompilationError(s"closureConvert: unexpected SEMakeClo: $x")
 
-      case x: SEAppAtomic =>
-        throw CompilationError(s"closureConvert: unexpected SEAppAtomic: $x")
+      case x: SEAppAtomicGeneral =>
+        throw CompilationError(s"closureConvert: unexpected: $x")
+
+      case x: SEAppAtomicSaturatedBuiltin =>
+        throw CompilationError(s"closureConvert: unexpected: $x")
 
       case SEAppGeneral(fun, args) =>
         val newFun = closureConvert(remaps, fun)
@@ -1184,7 +1187,9 @@ private[lf] final case class Compiler(
         case _: SEBuiltinRecursiveDefinition => ()
         case SELocation(_, body) =>
           go(body)
-        case x: SEAppAtomic =>
+        case x: SEAppAtomicGeneral =>
+          throw CompilationError(s"freeVars: unexpected SEAppAtomic: $x")
+        case x: SEAppAtomicSaturatedBuiltin =>
           throw CompilationError(s"freeVars: unexpected SEAppAtomic: $x")
         case SEAppGeneral(fun, args) =>
           go(fun)
@@ -1282,8 +1287,10 @@ private[lf] final case class Compiler(
         case _: SEBuiltin => ()
         case _: SEBuiltinRecursiveDefinition => ()
         case SEValue(v) => goV(v)
-        case SEAppAtomic(fun, args) =>
+        case SEAppAtomicGeneral(fun, args) =>
           go(fun)
+          args.foreach(go)
+        case SEAppAtomicSaturatedBuiltin(_, args) =>
           args.foreach(go)
         case SEAppGeneral(fun, args) =>
           go(fun)

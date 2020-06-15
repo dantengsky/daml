@@ -521,14 +521,19 @@ object Pretty {
             case SBGetTime => text("$getTime")
             case _ => str(x)
           }
-        case SEAppAtomic(fun, args) =>
-          val prefix = text("appA-") + prettySExpr(index)(fun) + char('(')
+        case SEAppAtomicGeneral(fun, args) =>
+          val prefix = text("[appA]") + prettySExpr(index)(fun) + char('(')
+          intercalate(comma + lineOrSpace, args.map(prettySExpr(index)))
+            .tightBracketBy(prefix, char(')'))
+        case SEAppAtomicSaturatedBuiltin(builtin, args) =>
+          val prefix = text("[appB]") + prettySExpr(index)(SEBuiltin(builtin)) + char('(')
           intercalate(comma + lineOrSpace, args.map(prettySExpr(index)))
             .tightBracketBy(prefix, char(')'))
         case SEAppGeneral(fun, args) =>
-          val prefix = text("appG-") + prettySExpr(index)(fun) + char('(')
+          val prefix = text("[appG]") + prettySExpr(index)(fun) + char('(')
           intercalate(comma + lineOrSpace, args.map(prettySExpr(index)))
             .tightBracketBy(prefix, char(')'))
+
         /*        case SEAppAtomicFun(fun, args) =>
           val prefix = text("appA-") + prettySExpr(index)(fun) + char('(')
           intercalate(comma + lineOrSpace, args.map(prettySExpr(index)))
@@ -537,6 +542,7 @@ object Pretty {
           val prefix = text("appB-") + prettySExpr(index)(SEBuiltin(builtin)) + char('(')
           intercalate(comma + lineOrSpace, args.map(prettySExpr(index)))
             .tightBracketBy(prefix, char(')')) */
+
         case SEAbs(n, body) =>
           val prefix = text("(\\") +
             intercalate(space, (index to n + index - 1).map((v: Int) => str(v))) &

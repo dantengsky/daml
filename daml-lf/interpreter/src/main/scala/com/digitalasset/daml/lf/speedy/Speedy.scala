@@ -658,7 +658,7 @@ object Speedy {
   }
 
   //----------------------------------------------------------------------NOT WORKING
-/*  
+  /*
   /** The function/args have been evaluated to values, now execute the function. */
   def enterApplication(machine: Machine, vfun: SValue, newActuals: util.ArrayList[SValue]): Unit = {
     vfun match {
@@ -717,7 +717,7 @@ object Speedy {
         crash(s"Applying non-PAP: $vfun")
     }
   }
-*/
+   */
 
   /** Evaluate the first 'n' arguments in 'args'.
     'args' will contain at least 'n' expressions, but it may contain more(!)
@@ -794,7 +794,7 @@ object Speedy {
 
         val othersLength = newArgs.length - missing
 
-        for (i <- 0 to newArgsLimit-1) {
+        for (i <- 0 to newArgsLimit - 1) {
           val newArg = newArgs(i)
           val v = newArg.evaluate(machine)
           actuals.add(v)
@@ -851,15 +851,20 @@ object Speedy {
 
 //----------------------------------------------------------------------
 
-
   /** The function has been evaluated to a value. Now restore the environment and execute the application */
-  final case class KOverApp(overArgs: util.ArrayList[SValue], frame: Frame, actuals: Actuals, envSize: Int) extends Kont with SomeArrayEquals {
+  final case class KOverApp(
+      overArgs: util.ArrayList[SValue],
+      frame: Frame,
+      actuals: Actuals,
+      envSize: Int)
+      extends Kont
+      with SomeArrayEquals {
     def execute(vfun: SValue, machine: Machine) = {
-/*      
+      /*
       //println(s"KOverApp: ${pp(vfun)}")
       machine.restoreEnv(frame, actuals, envSize) //TODO: is this required.. dont think so
       enterApplication(machine, vfun, overArgs)
- */
+       */
       ???
     }
   }
@@ -987,7 +992,7 @@ object Speedy {
               case _ => false
             }
           }
-/*        case SContractId(_) | SDate(_) | SNumeric(_) | SInt64(_) | SParty(_) | SText(_) |
+        /*        case SContractId(_) | SDate(_) | SNumeric(_) | SInt64(_) | SParty(_) | SText(_) |
             STimestamp(_) | SStruct(_, _) | STextMap(_) | SGenMap(_) | SRecord(_, _, _) |
             SAny(_, _) | STypeRep(_) | STNat(_) | _: SPAP | SToken =>
           crash("Match on non-matchable value")*/
