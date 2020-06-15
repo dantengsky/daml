@@ -205,10 +205,9 @@ object Anf {
           k(depth, SECatch(body, handler, fin))
 
         case SELocation(loc, body) =>
-          atomizeExp(depth, env, body, {
+          transformExp(depth, env, body, {
             case (depth, body) =>
-              val body1 = makeRelativeA(depth)(body)
-              k(depth, SELocation(loc, body1))
+              k(depth, SELocation(loc, body))
           })
 
         case SELabelClosure(label, exp) =>

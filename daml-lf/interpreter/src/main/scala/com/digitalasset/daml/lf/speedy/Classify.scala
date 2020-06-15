@@ -65,7 +65,6 @@ object Classify { // classify the machine state w.r.t what step occurs next
         ("- eimportvalue", eimportvalue),
         ("CtrlValue:", ctrlValue),
         ("- kfinished", kfinished),
-        ("- koverapp", koverapp),
         ("- karg", karg),
         ("- kfun", kfun),
         ("- kbuiltin", kbuiltin),
@@ -75,6 +74,7 @@ object Classify { // classify the machine state w.r.t what step occurs next
         ("- klocation", klocation),
         ("- kmatch", kmatch),
         ("- kcatch", kcatch),
+        ("- koverapp", koverapp),
       ).map { case (tag, n) => s"$tag : $n" }.mkString("\n")
     }
   }
