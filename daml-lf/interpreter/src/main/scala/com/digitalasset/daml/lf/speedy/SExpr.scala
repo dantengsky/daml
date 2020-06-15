@@ -331,11 +331,48 @@ object SExpr {
   }
 
   /** A let-expression with a single RHS */
-  final case class SELet1(rhs: SExpr, body: SExpr) extends SExpr with SomeArrayEquals {
+  final case class SELet1General(rhs: SExpr, body: SExpr) extends SExpr with SomeArrayEquals {
     def execute(machine: Machine): Unit = {
       // Evaluate the body after we've evaluated the right-hand-side (rhs)
       machine.pushKont(KPushTo(machine.env, body, machine.frame, machine.actuals, machine.env.size))
       machine.ctrl = rhs
+    }
+  }
+
+  /** A let-expression with a single RHS which is a (saturated) builtin-application */
+  final case class SELet1Builtin(rhs: SEAppAtomicSaturatedBuiltin, body: SExpr)
+      extends SExpr
+      with SomeArrayEquals {
+    def execute(machine: Machine): Unit = {
+
+      // Evaluate the RHS, push the result on the stack, then evaluate the body
+
+      //TODO: small problem. we want to always get a value.
+      // but SBuiltin.execute doesn't (quite) guarentee that. in case of:
+      //        machine.ctrl = SEWronglyTypeContractId(coid, templateId, coinst.template)
+      //        machine.ctrl = SEImportValue(coinst.arg.value)
+
+      // TODO: Inline rhs components here (builtin,args), and do own evaluate of args
+      // and then use SBuiltin.evaluate(...) when it exists
+      rhs.execute(machine);
+
+      if (machine.returnValue == null) {
+        crash("SELet1Builtin, called SBuiltin.execute(), but ddn't get returnValue")
+      }
+      val v = machine.returnValue
+      machine.returnValue = null
+
+      machine.env.add(v)
+      machine.ctrl = body
+    }
+  }
+
+  object SELet1 {
+    def apply(rhs: SExpr, body: SExpr): SExpr = {
+      rhs match {
+        case rhs: SEAppAtomicSaturatedBuiltin => SELet1Builtin(rhs, body)
+        case _ => SELet1General(rhs, body)
+      }
     }
   }
 

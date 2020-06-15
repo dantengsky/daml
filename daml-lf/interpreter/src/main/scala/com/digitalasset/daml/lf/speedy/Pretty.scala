@@ -566,8 +566,11 @@ object Pretty {
           })).tightBracketBy(text("let ["), char(']')) +
             lineOrSpace + text("in") & prettySExpr(index + bounds.length)(body)
 
-        case SELet1(rhs, body) =>
+        case SELet1General(rhs, body) =>
           prettySExpr(index)(SELet(Array(rhs), body))
+
+        case SELet1Builtin(rhs, body) =>
+          prettySExpr(index)(SELet1General(rhs, body))
 
         case x: SEBuiltinRecursiveDefinition => str(x)
         case x: SEImportValue => str(x)

@@ -201,6 +201,7 @@ object Anf {
         case SELocation(loc, body) =>
           transformExp(depth, env, body, {
             case (depth, body) =>
+              //val body1 = makeRelativeA(depth)(body)
               k(depth, SELocation(loc, body))
           })
 
@@ -217,7 +218,8 @@ object Anf {
 
         case x: SEAppAtomicGeneral => throw CompilationError(s"flatten: unexpected: $x")
         case x: SEAppAtomicSaturatedBuiltin => throw CompilationError(s"flatten: unexpected: $x")
-        case x: SELet1 => throw CompilationError(s"flatten: unexpected: $x")
+        case x: SELet1General => throw CompilationError(s"flatten: unexpected: $x")
+        case x: SELet1Builtin => throw CompilationError(s"flatten: unexpected: $x")
 
     })
 

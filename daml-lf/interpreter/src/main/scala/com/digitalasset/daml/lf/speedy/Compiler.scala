@@ -1128,7 +1128,8 @@ private[lf] final case class Compiler(
       case x: SEAppAtomicGeneral => throw CompilationError(s"closureConvert: unexpected: $x")
       case x: SEAppAtomicSaturatedBuiltin =>
         throw CompilationError(s"closureConvert: unexpected: $x")
-      case x: SELet1 => throw CompilationError(s"closureConvert: unexpected: $x")
+      case x: SELet1General => throw CompilationError(s"closureConvert: unexpected: $x")
+      case x: SELet1Builtin => throw CompilationError(s"closureConvert: unexpected: $x")
 
     }
   }
@@ -1207,7 +1208,8 @@ private[lf] final case class Compiler(
         case x: SEMakeClo => throw CompilationError(s"freeVars: unexpected: $x")
         case x: SEAppAtomicGeneral => throw CompilationError(s"freeVars: unexpected: $x")
         case x: SEAppAtomicSaturatedBuiltin => throw CompilationError(s"freeVars: unexpected: $x")
-        case x: SELet1 => throw CompilationError(s"freeVars: unexpected: $x")
+        case x: SELet1General => throw CompilationError(s"freeVars: unexpected: $x")
+        case x: SELet1Builtin => throw CompilationError(s"freeVars: unexpected: $x")
       }
     go(expr)
     free
@@ -1282,7 +1284,8 @@ private[lf] final case class Compiler(
               val n = patternNArgs(pat)
               goBody(maxS + n, maxA, maxF)(body)
           }
-        case SELet1(rhs, body) => go(SELet(Array(rhs), body))
+        case SELet1General(rhs, body) => go(SELet(Array(rhs), body))
+        case SELet1Builtin(rhs, body) => go(SELet1General(rhs, body))
         case SELet(bounds, body) =>
           bounds.zipWithIndex.foreach {
             case (rhs, i) =>
