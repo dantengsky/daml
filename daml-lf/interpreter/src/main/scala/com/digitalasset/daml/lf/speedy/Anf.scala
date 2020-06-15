@@ -188,11 +188,11 @@ object Anf {
           k(depth, SEMakeClo(fvs, arity, body))
 
         case SECase(scrut, alts0) =>
-          atomizeExp(depth, env, scrut, {
+          transformExp(depth, env, scrut, {
             case (depth, scrut) =>
-              val scrut1 = makeRelativeA(depth)(scrut)
+              //val scrut1 = makeRelativeA(depth)(scrut)
               val alts = flattenAlts(depth, env, alts0)
-              k(depth, SECase(scrut1, alts))
+              k(depth, SECase(scrut, alts))
           })
 
         case SELet(rhss, body) =>
