@@ -24,7 +24,8 @@ object Classify { // classify the machine state w.r.t what step occurs next
       var ebuiltin: Int = 0,
       var eval: Int = 0,
       var elocation: Int = 0,
-      var elet: Int = 0,
+      var eletG: Int = 0,
+      var elet1: Int = 0,
       var ecase: Int = 0,
       var erecdef: Int = 0,
       var ecatch: Int = 0,
@@ -58,7 +59,8 @@ object Classify { // classify the machine state w.r.t what step occurs next
         ("- ebuiltin", ebuiltin),
         ("- eval", eval),
         ("- elocation", elocation),
-        ("- elet", elet),
+        ("- eletG", eletG),
+        ("- elet1", elet1),
         ("- ecase", ecase),
         ("- erecdef", erecdef),
         ("- ecatch", ecatch),
@@ -108,7 +110,8 @@ object Classify { // classify the machine state w.r.t what step occurs next
       case _: SEBuiltin => counts.ebuiltin += 1
       case _: SEVal => counts.eval += 1
       case _: SELocation => counts.elocation += 1
-      case _: SELet => counts.elet += 1
+      case _: SELet => counts.eletG += 1
+      case _: SELet1 => counts.elet1 += 1
       case _: SECase => counts.ecase += 1
       case _: SEBuiltinRecursiveDefinition => counts.erecdef += 1
       case _: SECatch => counts.ecatch += 1

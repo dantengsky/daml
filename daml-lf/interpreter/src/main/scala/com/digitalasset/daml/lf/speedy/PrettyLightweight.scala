@@ -72,7 +72,8 @@ object PrettyLightweight { // lightweight pretty printer for CEK machine states
         case SEBuiltin(b) => s"(BUILTIN)$b"
         case SEVal(ref) => s"(DEF)${pp(ref)}"
         case SELocation(_, exp) => s"LOC(${pp(exp)})"
-        case SELet(rhss, body) => s"let (${commas(rhss.map(pp))}) in ${pp(body)}"
+        case SELet(rhss, body) => s"letG (${commas(rhss.map(pp))}) in ${pp(body)}"
+        case SELet1(rhs, body) => s"let ${pp(rhs)} in ${pp(body)}"
         case SECase(scrut, _) => s"case ${pp(scrut)} of..."
         case SEBuiltinRecursiveDefinition(_) => "<SEBuiltinRecursiveDefinition...>"
         case SECatch(_, _, _) => "<SECatch...>" //not seen one yet

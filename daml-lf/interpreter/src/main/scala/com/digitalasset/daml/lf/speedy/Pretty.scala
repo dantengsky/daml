@@ -480,7 +480,6 @@ object Pretty {
     }
 
     def prettySExpr(index: Int)(e: SExpr): Doc =
-      //(text("<")+str(index)+text(">")) +
       (e match {
         case SEVar(i) => char('@') + str(index - i)
         case SEVal(defId) =>
@@ -525,23 +524,16 @@ object Pretty {
           val prefix = text("[appA]") + prettySExpr(index)(fun) + char('(')
           intercalate(comma + lineOrSpace, args.map(prettySExpr(index)))
             .tightBracketBy(prefix, char(')'))
+
         case SEAppAtomicSaturatedBuiltin(builtin, args) =>
           val prefix = text("[appB]") + prettySExpr(index)(SEBuiltin(builtin)) + char('(')
           intercalate(comma + lineOrSpace, args.map(prettySExpr(index)))
             .tightBracketBy(prefix, char(')'))
+
         case SEAppGeneral(fun, args) =>
           val prefix = text("[appG]") + prettySExpr(index)(fun) + char('(')
           intercalate(comma + lineOrSpace, args.map(prettySExpr(index)))
             .tightBracketBy(prefix, char(')'))
-
-        /*        case SEAppAtomicFun(fun, args) =>
-          val prefix = text("appA-") + prettySExpr(index)(fun) + char('(')
-          intercalate(comma + lineOrSpace, args.map(prettySExpr(index)))
-            .tightBracketBy(prefix, char(')'))
-        case SEAppSaturatedBuiltinFun(builtin, args) =>
-          val prefix = text("appB-") + prettySExpr(index)(SEBuiltin(builtin)) + char('(')
-          intercalate(comma + lineOrSpace, args.map(prettySExpr(index)))
-            .tightBracketBy(prefix, char(')')) */
 
         case SEAbs(n, body) =>
           val prefix = text("(\\") +
@@ -573,6 +565,9 @@ object Pretty {
               str(index + n) & char('=') & prettySExpr(index + n)(x)
           })).tightBracketBy(text("let ["), char(']')) +
             lineOrSpace + text("in") & prettySExpr(index + bounds.length)(body)
+
+        case SELet1(rhs, body) =>
+          prettySExpr(index)(SELet(Array(rhs), body))
 
         case x: SEBuiltinRecursiveDefinition => str(x)
         case x: SEImportValue => str(x)

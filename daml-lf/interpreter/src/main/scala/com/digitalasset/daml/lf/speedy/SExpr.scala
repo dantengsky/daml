@@ -330,6 +330,15 @@ object SExpr {
     def apply(scrut: SExpr) = PartialSECase(scrut)
   }
 
+  /** A let-expression with a single RHS */
+  final case class SELet1(rhs: SExpr, body: SExpr) extends SExpr with SomeArrayEquals {
+    def execute(machine: Machine): Unit = {
+      // Evaluate the body after we've evaluated the right-hand-side (rhs)
+      machine.pushKont(KPushTo(machine.env, body, machine.frame, machine.actuals, machine.env.size))
+      machine.ctrl = rhs
+    }
+  }
+
   /** A non-recursive, non-parallel let block. Each bound expression
     * is evaluated in turn and pushed into the environment one by one,
     * with later expressions possibly referring to earlier.

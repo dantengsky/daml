@@ -1089,26 +1089,11 @@ private[lf] final case class Compiler(
       case x: SEMakeClo =>
         throw CompilationError(s"closureConvert: unexpected SEMakeClo: $x")
 
-      case x: SEAppAtomicGeneral =>
-        throw CompilationError(s"closureConvert: unexpected: $x")
-
-      case x: SEAppAtomicSaturatedBuiltin =>
-        throw CompilationError(s"closureConvert: unexpected: $x")
-
       case SEAppGeneral(fun, args) =>
         val newFun = closureConvert(remaps, fun)
         val newArgs = args.map(closureConvert(remaps, _))
         SEApp(newFun, newArgs)
-      /*
-      case SEAppAtomicFun(fun, args) =>
-        val newFun = closureConvert(remaps, fun)
-        val newArgs = args.map(closureConvert(remaps, _))
-        SEApp(newFun, newArgs)
 
-      case SEAppSaturatedBuiltinFun(builtin, args) =>
-        val newArgs = args.map(closureConvert(remaps, _))
-        SEAppSaturatedBuiltinFun(builtin, newArgs)
-       */
       case SECase(scrut, alts) =>
         SECase(
           closureConvert(remaps, scrut),
@@ -1138,11 +1123,13 @@ private[lf] final case class Compiler(
       case SELabelClosure(label, expr) =>
         SELabelClosure(label, closureConvert(remaps, expr))
 
-      case x: SEWronglyTypeContractId =>
-        throw CompilationError(s"unexpected SEWronglyTypeContractId: $x")
+      case x: SEWronglyTypeContractId => throw CompilationError(s"closureConvert: unexpected: $x")
+      case x: SEImportValue => throw CompilationError(s"closureConvert: unexpected: $x")
+      case x: SEAppAtomicGeneral => throw CompilationError(s"closureConvert: unexpected: $x")
+      case x: SEAppAtomicSaturatedBuiltin =>
+        throw CompilationError(s"closureConvert: unexpected: $x")
+      case x: SELet1 => throw CompilationError(s"closureConvert: unexpected: $x")
 
-      case x: SEImportValue =>
-        throw CompilationError(s"unexpected SEImportValue: $x")
     }
   }
 
@@ -1187,26 +1174,13 @@ private[lf] final case class Compiler(
         case _: SEBuiltinRecursiveDefinition => ()
         case SELocation(_, body) =>
           go(body)
-        case x: SEAppAtomicGeneral =>
-          throw CompilationError(s"freeVars: unexpected SEAppAtomic: $x")
-        case x: SEAppAtomicSaturatedBuiltin =>
-          throw CompilationError(s"freeVars: unexpected SEAppAtomic: $x")
         case SEAppGeneral(fun, args) =>
           go(fun)
           args.foreach(go)
-        /*        case SEAppAtomicFun(fun, args) =>
-          go(fun)
-          args.foreach(go)
-        case SEAppSaturatedBuiltinFun(_, args) =>
-          args.foreach(go) */
         case SEAbs(n, body) =>
           bound += n
           go(body)
           bound -= n
-        case x: SELoc =>
-          throw CompilationError(s"freeVars: unexpected SELoc: $x")
-        case x: SEMakeClo =>
-          throw CompilationError(s"freeVars: unexpected SEMakeClo: $x")
         case SECase(scrut, alts) =>
           go(scrut)
           alts.foreach {
@@ -1227,10 +1201,13 @@ private[lf] final case class Compiler(
           go(fin)
         case SELabelClosure(_, expr) =>
           go(expr)
-        case x: SEWronglyTypeContractId =>
-          throw CompilationError(s"unexpected SEWronglyTypeContractId: $x")
-        case x: SEImportValue =>
-          throw CompilationError(s"unexpected SEImportValue: $x")
+        case x: SEWronglyTypeContractId => throw CompilationError(s"freeVars: unexpected: $x")
+        case x: SEImportValue => throw CompilationError(s"freeVars: unexpected: $x")
+        case x: SELoc => throw CompilationError(s"freeVars: unexpected: $x")
+        case x: SEMakeClo => throw CompilationError(s"freeVars: unexpected: $x")
+        case x: SEAppAtomicGeneral => throw CompilationError(s"freeVars: unexpected: $x")
+        case x: SEAppAtomicSaturatedBuiltin => throw CompilationError(s"freeVars: unexpected: $x")
+        case x: SELet1 => throw CompilationError(s"freeVars: unexpected: $x")
       }
     go(expr)
     free
@@ -1295,15 +1272,6 @@ private[lf] final case class Compiler(
         case SEAppGeneral(fun, args) =>
           go(fun)
           args.foreach(go)
-        /*        case SEAppAtomicFun(fun, args) =>
-          go(fun)
-          args.foreach(go)
-        case SEAppSaturatedBuiltinFun(_, args) =>
-          args.foreach(go) */
-        case x: SEVar =>
-          throw CompilationError(s"validate: SEVar encountered: $x")
-        case abs: SEAbs =>
-          throw CompilationError(s"validate: SEAbs encountered: $abs")
         case SEMakeClo(fvs, n, body) =>
           fvs.foreach(goLoc)
           goBody(0, n, fvs.length)(body)
@@ -1314,6 +1282,7 @@ private[lf] final case class Compiler(
               val n = patternNArgs(pat)
               goBody(maxS + n, maxA, maxF)(body)
           }
+        case SELet1(rhs, body) => go(SELet(Array(rhs), body))
         case SELet(bounds, body) =>
           bounds.zipWithIndex.foreach {
             case (rhs, i) =>
@@ -1328,10 +1297,11 @@ private[lf] final case class Compiler(
           go(body)
         case SELabelClosure(_, expr) =>
           go(expr)
-        case x: SEWronglyTypeContractId =>
-          throw CompilationError(s"unexpected SEWronglyTypeContractId: $x")
-        case x: SEImportValue =>
-          throw CompilationError(s"unexpected SEImportValue: $x")
+
+        case x: SEVar => throw CompilationError(s"validate: unexpected: $x")
+        case x: SEAbs => throw CompilationError(s"validate: unexpected: $x")
+        case x: SEWronglyTypeContractId => throw CompilationError(s"validate: unexpected: $x")
+        case x: SEImportValue => throw CompilationError(s"validate: unexpected: $x")
       }
       go
     }

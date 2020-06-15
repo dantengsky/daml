@@ -127,7 +127,7 @@ object Anf {
             case (depth, rhs) =>
               val env1 = trackBindings(depth, env, 1)
               val anf = transformLets(DepthA(depth.n + 1), env1, rhss, body, k0).bounce
-              Land(SELet(Array(rhs), anf))
+              Land(SELet1(rhs, anf))
           }
         )
       case Nil =>
@@ -176,12 +176,6 @@ object Anf {
                 )
             }
           )
-
-        case x: SEAppAtomicGeneral =>
-          throw CompilationError(s"flatten: unexpected: $x")
-        case x: SEAppAtomicSaturatedBuiltin =>
-          throw CompilationError(s"flatten: unexpected: $x")
-
         case SEMakeClo(fvs0, arity, body0) =>
           val fvs = fvs0.map(relocateL(depth, env))
           val body = flattenEntry(body0)
@@ -221,6 +215,10 @@ object Anf {
         case x: SEImportValue => throw CompilationError(s"flatten: unexpected: $x")
         case x: SEVar => throw CompilationError(s"flatten: unexpected: $x")
 
+        case x: SEAppAtomicGeneral => throw CompilationError(s"flatten: unexpected: $x")
+        case x: SEAppAtomicSaturatedBuiltin => throw CompilationError(s"flatten: unexpected: $x")
+        case x: SELet1 => throw CompilationError(s"flatten: unexpected: $x")
+
     })
 
   def atomizeExps(depth: DepthA, env: Env, exps: List[SExpr], k: K[List[AbsAtom]]): Res =
@@ -245,7 +243,7 @@ object Anf {
           case (depth, anf) =>
             val atom = Right(AbsBinding(depth))
             val body = k(DepthA(depth.n + 1), atom).bounce
-            Land(SELet(Array(anf), body))
+            Land(SELet1(anf, body))
         })
     }
   }
