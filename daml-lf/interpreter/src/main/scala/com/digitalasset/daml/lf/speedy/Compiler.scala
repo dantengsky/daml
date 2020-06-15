@@ -1285,7 +1285,8 @@ private[lf] final case class Compiler(
               goBody(maxS + n, maxA, maxF)(body)
           }
         case SELet1General(rhs, body) => go(SELet(Array(rhs), body))
-        case SELet1Builtin(rhs, body) => go(SELet1General(rhs, body))
+        case SELet1Builtin(builtin, args, body) =>
+          go(SELet1General(SEAppAtomicSaturatedBuiltin(builtin,args), body))
         case SELet(bounds, body) =>
           bounds.zipWithIndex.foreach {
             case (rhs, i) =>

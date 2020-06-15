@@ -569,8 +569,8 @@ object Pretty {
         case SELet1General(rhs, body) =>
           prettySExpr(index)(SELet(Array(rhs), body))
 
-        case SELet1Builtin(rhs, body) =>
-          prettySExpr(index)(SELet1General(rhs, body))
+        case SELet1Builtin(builtin, args, body) =>
+          prettySExpr(index)(SELet1General(SEAppAtomicSaturatedBuiltin(builtin,args), body))
 
         case x: SEBuiltinRecursiveDefinition => str(x)
         case x: SEImportValue => str(x)

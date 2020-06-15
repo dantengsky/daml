@@ -83,7 +83,7 @@ object SExpr {
   }
 
   /** Reference to a builtin function */
-  final case class SEBuiltin(b: SBuiltin) extends SExprAtomic {
+  final case class SEBuiltin(b: SBuiltinMaybeHungry) extends SExprAtomic {
     def evaluate(machine: Machine): SValue = {
       /* special case for nullary record constructors */
       b match {
@@ -150,7 +150,7 @@ object SExpr {
 
   }
 
-  final case class SEAppAtomicSaturatedBuiltin(builtin: SBuiltin, args: Array[SExprAtomic])
+  final case class SEAppAtomicSaturatedBuiltin(builtin: SBuiltinMaybeHungry, args: Array[SExprAtomic])
       extends SExpr
       with SomeArrayEquals {
 
@@ -340,24 +340,34 @@ object SExpr {
   }
 
   /** A let-expression with a single RHS which is a (saturated) builtin-application */
-  final case class SELet1Builtin(rhs: SEAppAtomicSaturatedBuiltin, body: SExpr)
+  final case class SELet1Builtin(builtin:SBuiltin, args: Array[SExprAtomic], body: SExpr)
       extends SExpr
       with SomeArrayEquals {
     def execute(machine: Machine): Unit = {
 
-      // Evaluate the RHS, push the result on the stack, then evaluate the body
+      // Evaluate the RHS (an unhungry saturated builtin application)..
+      // push the result on the stack, then evaluate the body:
 
+      //rhs.execute(machine);
+      //
       //TODO: small problem. we want to always get a value.
       // but SBuiltin.execute doesn't (quite) guarentee that. in case of:
       //        machine.ctrl = SEWronglyTypeContractId(coid, templateId, coinst.template)
       //        machine.ctrl = SEImportValue(coinst.arg.value)
 
-      // TODO: Inline rhs components here (builtin,args), and do own evaluate of args
+      // Inline rhs components here (builtin,args), and do own evaluation of args
       // and then use SBuiltin.evaluate(...) when it exists
-      rhs.execute(machine);
+      val arity = builtin.arity
+      val actuals = new util.ArrayList[SValue](arity)
+      for (i <- 0 to arity - 1) {
+        val arg = args(i)
+        val v = arg.evaluate(machine)
+        actuals.add(v)
+      }
+      builtin.execute(actuals, machine)
 
       if (machine.returnValue == null) {
-        crash("SELet1Builtin, called SBuiltin.execute(), but ddn't get returnValue")
+        crash("SELet1Builtin, called SBuiltin.execute(), but didn't get returnValue")
       }
       val v = machine.returnValue
       machine.returnValue = null
@@ -370,7 +380,7 @@ object SExpr {
   object SELet1 {
     def apply(rhs: SExpr, body: SExpr): SExpr = {
       rhs match {
-        case rhs: SEAppAtomicSaturatedBuiltin => SELet1Builtin(rhs, body)
+        case SEAppAtomicSaturatedBuiltin(builtin: SBuiltin, args) => SELet1Builtin(builtin, args, body)
         case _ => SELet1General(rhs, body)
       }
     }
