@@ -899,7 +899,8 @@ object Speedy {
   }
 
   /** The builtin arguments have been evaluated. Now execute the builtin. */
-  final case class KBuiltin(builtin: SBuiltinMaybeHungry, actuals: util.ArrayList[SValue]) extends Kont {
+  final case class KBuiltin(builtin: SBuiltinMaybeHungry, actuals: util.ArrayList[SValue])
+      extends Kont {
     def execute(v: SValue, machine: Machine) = {
       actuals.add(v)
       // A builtin has no free-vars, so we dont have to set the frame.

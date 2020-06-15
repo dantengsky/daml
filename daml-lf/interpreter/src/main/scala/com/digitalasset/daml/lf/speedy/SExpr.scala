@@ -150,7 +150,9 @@ object SExpr {
 
   }
 
-  final case class SEAppAtomicSaturatedBuiltin(builtin: SBuiltinMaybeHungry, args: Array[SExprAtomic])
+  final case class SEAppAtomicSaturatedBuiltin(
+      builtin: SBuiltinMaybeHungry,
+      args: Array[SExprAtomic])
       extends SExpr
       with SomeArrayEquals {
 
@@ -340,7 +342,7 @@ object SExpr {
   }
 
   /** A let-expression with a single RHS which is a (saturated) builtin-application */
-  final case class SELet1Builtin(builtin:SBuiltin, args: Array[SExprAtomic], body: SExpr)
+  final case class SELet1Builtin(builtin: SBuiltin, args: Array[SExprAtomic], body: SExpr)
       extends SExpr
       with SomeArrayEquals {
     def execute(machine: Machine): Unit = {
@@ -380,7 +382,8 @@ object SExpr {
   object SELet1 {
     def apply(rhs: SExpr, body: SExpr): SExpr = {
       rhs match {
-        case SEAppAtomicSaturatedBuiltin(builtin: SBuiltin, args) => SELet1Builtin(builtin, args, body)
+        case SEAppAtomicSaturatedBuiltin(builtin: SBuiltin, args) =>
+          SELet1Builtin(builtin, args, body)
         case _ => SELet1General(rhs, body)
       }
     }

@@ -36,8 +36,7 @@ sealed abstract class SBuiltinMaybeHungry(val arity: Int) {
   def execute(args: util.ArrayList[SValue], machine: Machine): Unit
 }
 
-sealed abstract class SBuiltin(val arity1: Int)
-    extends SBuiltinMaybeHungry(arity1) {
+sealed abstract class SBuiltin(val arity1: Int) extends SBuiltinMaybeHungry(arity1) {
   //TODO: evaluate here
 }
 
