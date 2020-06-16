@@ -94,6 +94,8 @@ object Speedy {
   final case class Machine(
       /* Value versions that the machine can output */
       supportedValueVersions: VersionRange[value.ValueVersion],
+      /* Transaction versions that the machine can output */
+      supportedTransactionVersions: VersionRange[transaction.TransactionVersion],
       /* The control is what the machine should be evaluating. If this is not
        * null, then `returnValue` must be null.
        */
@@ -523,6 +525,7 @@ object Speedy {
     ) =
       Machine(
         supportedValueVersions = value.ValueVersions.DefaultSupportedVersions,
+        supportedTransactionVersions = transaction.TransactionVersions.DefaultSupportedVersions,
         ctrl = null,
         returnValue = null,
         frame = null,
