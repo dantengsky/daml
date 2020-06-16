@@ -116,23 +116,24 @@ object Anf {
 
   // transform* -- continuation entry points
 
-  //TODO: inline?
-  def transformLets(depth: DepthA, env: Env, rhss: List[SExpr], body: SExpr, k0: K[SExpr]): Res =
-    rhss match {
-      case rhs :: rhss =>
-        transformExp(
-          depth,
-          env,
-          rhs, {
-            case (depth, rhs) =>
-              val env1 = trackBindings(depth, env, 1)
-              val anf = transformLets(DepthA(depth.n + 1), env1, rhss, body, k0).bounce
-              Land(SELet1(rhs, anf))
-          }
-        )
-      case Nil =>
-        transformExp(depth, env, body, k0)
-    }
+  def transformLet1(depth: DepthA, env: Env, rhs: SExpr, body: SExpr, k: K[SExpr]): Res = {
+    val rhs1 = flattenExp(depth, env, rhs)
+    val depth1 = DepthA(depth.n + 1)
+    val env1 = trackBindings(depth, env, 1)
+    val body1 = flattenExp(depth1, env1, body)
+    k(depth, SELet1(rhs1, body1))
+  }
+
+  /*def transformLet1(depth: DepthA, env: Env, rhs: SExpr, body: SExpr, k: K[SExpr]): Res = {
+    // This is a better transform, but sadly it can blow the stack for deeply nested lets.
+    transformExp(depth, env, rhs, {
+      case (depth, rhs) =>
+        val depth1 = DepthA(depth.n + 1)
+        val env1 = trackBindings(depth, env, 1)
+        val body1 = transformExp(depth1, env1, body, k).bounce
+        Land(SELet1(rhs, body1))
+    })
+  }*/
 
   //TODO: inline
   def flattenAlts(depth: DepthA, env: Env, alts: Array[SCaseAlt]): Array[SCaseAlt] = {
@@ -190,7 +191,11 @@ object Anf {
           })
 
         case SELet(rhss, body) =>
-          transformLets(depth, env, rhss.toList, body, k)
+          val expanded = expandMultiLet(rhss.toList, body)
+          transformExp(depth, env, expanded, k)
+
+        case SELet1General(rhs, body) =>
+          transformLet1(depth, env, rhs, body, k)
 
         case SECatch(body0, handler0, fin0) =>
           val body = flattenExp(depth, env, body0)
@@ -218,7 +223,7 @@ object Anf {
 
         case x: SEAppAtomicGeneral => throw CompilationError(s"flatten: unexpected: $x")
         case x: SEAppAtomicSaturatedBuiltin => throw CompilationError(s"flatten: unexpected: $x")
-        case x: SELet1General => throw CompilationError(s"flatten: unexpected: $x")
+        //case x: SELet1General => throw CompilationError(s"flatten: unexpected: $x")
         case x: SELet1Builtin => throw CompilationError(s"flatten: unexpected: $x")
 
     })
@@ -248,6 +253,18 @@ object Anf {
             Land(SELet1(anf, body))
         })
     }
+  }
+
+  def expandMultiLet(rhss: List[SExpr], body: SExpr): SExpr = {
+    //loop over rhss in reverse order
+    @tailrec
+    def loop(acc: SExpr, xs: List[SExpr]): SExpr = {
+      xs match {
+        case Nil => acc
+        case rhs :: xs => loop(SELet1General(rhs, acc), xs)
+      }
+    }
+    loop(body, rhss.reverse)
   }
 
 }
